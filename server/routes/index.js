@@ -5,7 +5,7 @@ const User = require("./DB");
 const session = require("express-session");
 
 router.get("/", function (req, res) {
-  res.json({ message: "API is working" });
+  res.json({ message: "Server-side is working" });
 });
 
 module.exports = router;
