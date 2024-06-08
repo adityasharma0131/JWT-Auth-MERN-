@@ -1,9 +1,11 @@
-var express = require('express');
-var router = express.Router();
+const express = require("express");
+const router = express.Router();
+const bcrypt = require("bcrypt");
+const User = require("./DB");
+const session = require("express-session");
 
-/* GET home page. */
-router.get('/', function(req, res, next) {
-  res.render('index', { title: 'Express' });
+router.get("/", function (req, res) {
+  res.json({ message: "API is working" });
 });
 
 module.exports = router;
