@@ -1,22 +1,38 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useCookies } from "react-cookie";
 import { toast, Toaster } from "react-hot-toast";
 
 const Register = () => {
+  const [cookies] = useCookies(["cookie-name"]);
   const navigate = useNavigate();
-  
-  const [values, setValues] = useState({
-    email: "",
-    password: "",
-  });
 
-  const generateError = (err) => toast.error(err);
-  const generateSuccess = (msg) => toast.success(msg);
+  useEffect(() => {
+    if (cookies.jwt) {
+      navigate("/");
+    }
+  }, [cookies, navigate]);
+
+  const [values, setValues] = useState({ email: "", password: "" });
+
+  const generateError = (error) =>
+    toast.error(error, {
+      position: "bottom-right",
+    });
+
+  const generateSuccess = (message) =>
+    toast.success(message, {
+      position: "bottom-right",
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!values.email || !values.password) {
+      if (!values.email) generateError("Email is required");
+      if (!values.password) generateError("Password is required");
+      return;
+    }
     try {
       const { data } = await axios.post(
         "http://localhost:3000/register",
@@ -26,16 +42,17 @@ const Register = () => {
         { withCredentials: true }
       );
       if (data) {
-        if (data.error) {
-          generateError(data.error);
+        if (data.errors) {
+          const { email, password } = data.errors;
+          if (email) generateError(email);
+          if (password) generateError(password);
         } else {
-          generateSuccess(data.message || "User Created Successfully!");
+          generateSuccess("Successfully registered!");
           navigate("/");
         }
       }
     } catch (ex) {
       console.log(ex);
-      generateError("An error occurred during registration");
     }
   };
 

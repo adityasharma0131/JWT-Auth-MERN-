@@ -2,28 +2,47 @@ const jwt = require("jsonwebtoken");
 const DB = require("../routes/DB");
 
 const maxAge = 3 * 24 * 60 * 60;
-
 const createToken = (id) => {
-  return jwt.sign({ id }, "CAT", {
+  return jwt.sign({ id }, "kishan sheth super secret key", {
     expiresIn: maxAge,
   });
+};
+
+const handleErrors = (err) => {
+  let errors = { email: "", password: "" };
+
+  console.log(err);
+  if (err.message === "incorrect email") {
+    errors.email = "That email is not registered";
+  }
+
+  if (err.message === "incorrect password") {
+    errors.password = "That password is incorrect";
+  }
+
+  if (err.code === 11000) {
+    errors.email = "Email is already registered";
+    return errors;
+  }
+
+  if (err.message.includes("Users validation failed")) {
+    Object.values(err.errors).forEach(({ properties }) => {
+      errors[properties.path] = properties.message;
+    });
+  }
+
+  return errors;
 };
 
 module.exports.register = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    // Check for blank inputs
     if (!email || !password) {
-      return res.status(400).json({ error: "Email and Password are required" });
+      const errors = {};
+      if (!email) errors.email = "Email is required";
+      if (!password) errors.password = "Password is required";
+      return res.json({ errors, created: false });
     }
-
-    // Check if the email already exists
-    const existingUser = await DB.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: "Email is already registered" });
-    }
-
     const user = await DB.create({ email, password });
     const token = createToken(user._id);
 
@@ -33,35 +52,23 @@ module.exports.register = async (req, res, next) => {
       maxAge: maxAge * 1000,
     });
 
-    res.status(201).json({ message: "User Created Successfully", user: user._id, create: true });
-  } catch (error) {
-    console.log(error);
-    res.status(400).json({ error: "Registration failed" });
+    res.status(201).json({ user: user._id, created: true });
+  } catch (err) {
+    console.log(err);
+    const errors = handleErrors(err);
+    res.json({ errors, created: false });
   }
 };
 
-module.exports.login = async (req, res, next) => {
+module.exports.login = async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
-    const user = await DB.findOne({ email });
-    if (user) {
-      const auth = await user.comparePassword(password);
-      if (auth) {
-        const token = createToken(user._id);
-        res.cookie("jwt", token, {
-          withCredentials: true,
-          httpOnly: false,
-          maxAge: maxAge * 1000,
-        });
-        res.status(200).json({ user: user._id, login: true });
-      } else {
-        res.status(400).json({ error: "Incorrect password" });
-      }
-    } else {
-      res.status(400).json({ error: "User not found" });
-    }
-  } catch (error) {
-    console.log(error);
-    res.status(400).json({ error: "Login failed" });
+    const user = await DB.login(email, password);
+    const token = createToken(user._id);
+    res.cookie("jwt", token, { httpOnly: false, maxAge: maxAge * 1000 });
+    res.status(200).json({ user: user._id, status: true });
+  } catch (err) {
+    const errors = handleErrors(err);
+    res.json({ errors, status: false });
   }
 };
