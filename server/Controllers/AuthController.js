@@ -1,9 +1,9 @@
 const jwt = require("jsonwebtoken");
-const DB = require("../routes/DB");
+const DB = require("../routes/DB"); // Ensure DB has create and login methods
 
-const maxAge = 3 * 24 * 60 * 60;
+const maxAge = 3 * 24 * 60 * 60; // 3 days in seconds
 const createToken = (id) => {
-  return jwt.sign({ id }, "kishan sheth super secret key", {
+  return jwt.sign({ id }, "CAT", {
     expiresIn: maxAge,
   });
 };
@@ -11,7 +11,6 @@ const createToken = (id) => {
 const handleErrors = (err) => {
   let errors = { email: "", password: "" };
 
-  console.log(err);
   if (err.message === "incorrect email") {
     errors.email = "That email is not registered";
   }
@@ -48,13 +47,13 @@ module.exports.register = async (req, res, next) => {
 
     res.cookie("jwt", token, {
       withCredentials: true,
-      httpOnly: false,
+      httpOnly: true, // More secure setting
       maxAge: maxAge * 1000,
     });
 
     res.status(201).json({ user: user._id, created: true });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     const errors = handleErrors(err);
     res.json({ errors, created: false });
   }

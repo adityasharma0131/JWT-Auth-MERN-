@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const Schema = mongoose.Schema;
 const bcrypt = require("bcrypt");
 
 const connect = mongoose.connect(
@@ -10,11 +9,11 @@ connect
   .then(() => {
     console.log("Database Connected Successfully!!");
   })
-  .catch(() => {
-    console.log("Error Connecting Database!");
+  .catch((error) => {
+    console.error("Error Connecting Database!", error);
   });
 
-const UserSchema = new Schema({
+const UserSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
@@ -31,5 +30,17 @@ UserSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
+
+UserSchema.statics.login = async function (email, password) {
+  const user = await this.findOne({ email });
+  if (user) {
+    const auth = await bcrypt.compare(password, user.password);
+    if (auth) {
+      return user;
+    }
+    throw Error("incorrect password");
+  }
+  throw Error("incorrect email");
+};
 
 module.exports = mongoose.model("User", UserSchema);
